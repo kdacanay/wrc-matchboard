@@ -1,0 +1,42 @@
+// firestore.rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    // Profiles are readable/writable by the owner or an admin
+    match /profiles/{userId} {
+      allow read:  if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Per-user data
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+
+      match /farms/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /activities/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /progress/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+  }
+}
